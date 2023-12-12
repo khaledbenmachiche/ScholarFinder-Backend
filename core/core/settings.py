@@ -79,8 +79,8 @@ DATABASES = {
         'NAME': 'tp_igl',
         'USER': 'root',
         'PASSWORD': 'root123456789',
-        'HOST': 'localhost',  # or the hostname where your MySQL server is running
-        'PORT': '3306',      # or the port on which your MySQL server is listening
+        'HOST': '127.0.0.1',
+        'PORT': '3306',     
     }
 }
 
