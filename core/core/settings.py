@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'myapp'
 ]
 
 MIDDLEWARE = [
@@ -76,10 +77,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'tp_igl',
+        'NAME': 'Base_TP_IGL_MoteurRecherche',
         'USER': 'root',
         'PASSWORD': 'root123456789',
-        'HOST': '127.0.0.1',
+        'HOST': 'localhost',
         'PORT': '3306',     
     }
 }
