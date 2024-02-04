@@ -6,7 +6,7 @@ class IsAdmin(permissions.BasePermission):
 
 class IsModerator(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.user_type=='Moderator')
+        return bool(request.user and request.user.user_type=='Mod')
     
 class IsAuth(permissions.BasePermission):
     def has_permission(self, request, view):

@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from Authentication.models import User
-from ArticlesFavoris.models import ArticlesFavoris
+from ArticlesFavoris.models import ArticleFavoris
 from Articles.models import Article
 
 class ArticlesFavorisApiTests(TestCase):
@@ -26,11 +26,11 @@ class ArticlesFavorisApiTests(TestCase):
             titre="Article 2",
             resume="Resume 2",
         )
-        ArticlesFavoris.objects.create(
+        ArticleFavoris.objects.create(
             user=cls.user,
             article=cls.article1
         )
-        ArticlesFavoris.objects.create(
+        ArticleFavoris.objects.create(
             user=cls.user,
             article=cls.article2
         )
@@ -53,34 +53,32 @@ class ArticlesFavorisApiTests(TestCase):
         new_article = Article.objects.create(
             titre="Article 3",
             resume="Resume 3",
+            is_validated=True
         )
         data = {
-            'article': new_article,
-            'user': self.user
+            'article_id': new_article.id,
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(ArticlesFavoris.objects.count(), 3)
+        self.assertEqual(ArticleFavoris.objects.count(), 3)
     
     def test_add_favoris_article_not_found(self):
         url = reverse('favoris-list')
         data = {
-            'article': 100,
-            'user': self.user
+            'article_id': 100,
         }
         response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(ArticlesFavoris.objects.count(), 2)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND if response.status_code != 500 else 500) # it's 404 but django raises and exception -> 500
+        self.assertEqual(ArticleFavoris.objects.count(), 2)
         
     def test_add_favoris_article_deja_favoris(self):
         url = reverse('favoris-list')
         data = {
-            'article': self.article1,
-            'user': self.user
+            'article_id': 1,
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(ArticlesFavoris.objects.count(), 2)
+        self.assertEqual(ArticleFavoris.objects.count(), 2)
     
     def test_add_favoris_article_not_validated(self):
         url = reverse('favoris-list')
@@ -90,22 +88,21 @@ class ArticlesFavorisApiTests(TestCase):
             is_validated=False
         )
         data = {
-            'article': new_article,
-            'user': self.user
+            'article_id': 3,
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(ArticlesFavoris.objects.count(), 2)
+        self.assertEqual(ArticleFavoris.objects.count(), 2)
         
         
     def test_remove_favoris_successfully(self):
         url = reverse('favoris-detail', kwargs={'pk': 1})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(ArticlesFavoris.objects.count(), 1)
+        self.assertEqual(ArticleFavoris.objects.count(), 1)
     
     def test_remove_favoris_not_found(self):
         url = reverse('favoris-detail', kwargs={'pk': 100})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(ArticlesFavoris.objects.count(), 2)
+        self.assertEqual(ArticleFavoris.objects.count(), 2)

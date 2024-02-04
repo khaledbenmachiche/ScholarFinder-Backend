@@ -76,10 +76,6 @@ def parse_grobid_tei(file_name, public_url, results_directory):
 
     article["auteurs"] = authors
 
-    for author in authors:
-            print(f"Author: {author["nom"]}")
-            print(f"Institution: {author["institutions"]}")
-            print("-----")
 
     direct_keywords = soup.select('textClass > keywords')
     for direct_keyword in direct_keywords:
@@ -100,7 +96,6 @@ def parse_grobid_tei(file_name, public_url, results_directory):
             
     date_element = soup.select_one('date')
     date_str = date_element.text.strip() if date_element else None
-    print(date_str)
     article['date_de_publication'] = extract_date_from_text(date_str)
 
     return article

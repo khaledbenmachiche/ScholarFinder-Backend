@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -91,7 +92,7 @@ CSRF_COOKIE_SAMESITE = 'None'
 ELASTICSEARCH_DSL = {
     "default": {
         "hosts": os.getenv("ELASTICSEARCH_HOSTS"),
-        "http_auth": (os.getenv("ELASTICSEARCH_USERNAME"),"+qRh=jnHU-j*5o2ggxhu"),
+        "http_auth": (os.getenv("ELASTICSEARCH_USERNAME"), os.getenv("ELASTICSEARCH_PASSWORD")),
         'verify_certs': False,
         "ca_certs": os.getenv("ELASTICSEARCH_CA_CERTS"),
     }
@@ -130,10 +131,9 @@ DATABASES = {
      'PASSWORD': os.getenv('DB_PASSWORD'),
      'HOST': os.getenv('DB_HOST'),
      'PORT': os.getenv('DB_PORT'),
-     #'OPTIONS': {'sslmode': 'require'},
      'DISABLE_SERVER_SIDE_CURSORS': True,
-   }
- }
+    }
+}
 
 
 
@@ -196,10 +196,13 @@ API_NAME = 'drive'
 API_VERSION = 'v3'
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
+ARTICLES_FOLDER_ID = "1GaKJSn08mD7tcd3VuR9kGvJXXII6C5iB"
+SCRAPED_FILES_FILES_ID = "1XmbZd44kKHzyWPUR6aoE999inHPp8jdy"
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
