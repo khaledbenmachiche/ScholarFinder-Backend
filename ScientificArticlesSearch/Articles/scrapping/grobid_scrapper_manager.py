@@ -19,7 +19,7 @@ class GrobidScrapperManager:
         self.grobid_client = GrobidClient(config_path="./config.json")
         self.download_path = os.path.join(settings.MEDIA_ROOT, 'EchantillonsArticlesScrapping')
         self.results_directory = os.path.join(settings.MEDIA_ROOT, 'ScrapingResults')
-        self.scraped_files_file_id = "1mzuTxnBquYkH0JdA93bXayPMF578BAKW"
+        self.scraped_files_file_id = "1Y6YjHSI8Pwb24Cm3ammIK6_jJH6yzumJ"
         self.folder_id = "1GaKJSn08mD7tcd3VuR9kGvJXXII6C5iB"
     
     def _download_scrapping_folder(self):
@@ -59,6 +59,7 @@ class GrobidScrapperManager:
         serializer = ArticleSerializer(data=article)
         
         if serializer.is_valid():
+            #print(serializer.validated_data)
             serializer.create(serializer.validated_data)
         else:
             errors = serializer.errors
@@ -90,8 +91,6 @@ class GrobidScrapperManager:
                                 public_url = file_metadata.get('webContentLink') 
                                 article = parse_grobid_tei(filename, public_url,self.results_directory)
                                 error = self.save_article_to_database(article)
-                                print(error)
-                                break
                                 processed_files.append(file_name)
                                 updated_content = '\n'.join(processed_files)
                                 media = MediaIoBaseUpload(BytesIO(updated_content.encode('utf-8')), mimetype='text/plain', resumable=True)
