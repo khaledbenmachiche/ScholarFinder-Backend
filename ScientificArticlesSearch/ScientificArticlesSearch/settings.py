@@ -88,14 +88,16 @@ CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'None'
 
+
 ELASTICSEARCH_DSL = {
     "default": {
         "hosts": os.getenv("ELASTICSEARCH_HOSTS"),
         "http_auth": (os.getenv("ELASTICSEARCH_USERNAME"), os.getenv("ELASTICSEARCH_PASSWORD")),
-        'verify_certs': True,
+        'verify_certs': False,
         "ca_certs": os.getenv("ELASTICSEARCH_CA_CERTS"),
     }
 }
+
 
 ROOT_URLCONF = 'ScientificArticlesSearch.urls'
 

@@ -32,13 +32,12 @@ class GrobidScrapperManager:
     
     def __init__(self, drive_manager, folder_id):
         self.drive_manager = drive_manager
-        # self.grobid_client = GrobidClient(config_path="./config.json")
+        self.grobid_client = GrobidClient(config_path="./config.json")
         self.download_path = os.path.join(settings.MEDIA_ROOT, 'EchantillonsArticlesScrapping')
         self.results_directory = os.path.join(settings.MEDIA_ROOT, 'ScrapingResults')
         self.scraped_files_file_id = settings.SCRAPED_FILES_FILES_ID
         self.folder_id = folder_id
         
-    
     def _download_scrapping_folder(self):
         processed_files = self.drive_manager.get_file_content(self.scraped_files_file_id).splitlines()
         results = self.drive_manager.list_files(self.folder_id)

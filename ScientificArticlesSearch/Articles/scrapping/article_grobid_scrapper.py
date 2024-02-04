@@ -41,7 +41,7 @@ def parse_grobid_tei(file_name, public_url, results_directory):
     resume_paragraphs = [p.text.strip() for p in soup.select('abstract p')]
     article['resume'] = ' '.join(resume_paragraphs)
 
-    texte_integral = {}
+    texte_integral = []
     for div in soup.select('div'):
         head = div.find('head')
         paragraphs = div.select('p')
@@ -49,7 +49,7 @@ def parse_grobid_tei(file_name, public_url, results_directory):
         if head is not None:
             head_text = head.text.strip()
             paragraph_texts = [p.text.strip() for p in paragraphs]
-            texte_integral[head_text] = paragraph_texts
+            texte_integral.append({"header":head_text,"paragraph": paragraph_texts})
             
     article['text_integral'] = json.dumps(texte_integral)
 
@@ -74,6 +74,9 @@ def parse_grobid_tei(file_name, public_url, results_directory):
                 }
                 authors.append(author)
 
+    article["auteurs"] = authors
+
+
     direct_keywords = soup.select('textClass > keywords')
     for direct_keyword in direct_keywords:
         term_elements = direct_keyword.select('term')
@@ -82,12 +85,15 @@ def parse_grobid_tei(file_name, public_url, results_directory):
         else:
             article['mot_cles'].append({"text":direct_keyword.text.strip()})
             
+    print(article['mot_cles'])
 
     doc = grobid_tei_xml.parse_document_xml(tei_content)
     citations = doc.citations
 
     article['references_bibliographique'] = [{"nom":format_reference_bibliographique(citation)} for citation in citations]
-
+    for reference in article['references_bibliographique']:
+            print(reference)
+            
     date_element = soup.select_one('date')
     date_str = date_element.text.strip() if date_element else None
     article['date_de_publication'] = extract_date_from_text(date_str)
