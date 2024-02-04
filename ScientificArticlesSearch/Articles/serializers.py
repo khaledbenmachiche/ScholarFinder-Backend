@@ -41,14 +41,23 @@ class ArticleSerializer(serializers.ModelSerializer):
         mot_cles = validated_data.pop('mot_cles',[])
         auteurs = validated_data.pop('auteurs',[])
         references_bibliographique = validated_data.pop('references_bibliographique',[])
-        article_instance = Article.objects.create(**validated_data)
+        article_instance = None
+        try:
+            article_instance = Article.objects.create(**validated_data)
+        except Exception as e:
+            print(f"error:",e)
+
+        print(article_instance)
         for mot_cle in mot_cles:
             mot_cle_instance = MotCle.objects.create(**mot_cle,article=article_instance)
+            print(mot_cle_instance)
             article_instance.mot_cles.add(mot_cle_instance)
             
         for auteur in auteurs:
             institutions = auteur.pop('institutions',[])
             auteur_instance = Auteur.objects.create(**auteur,article=article_instance)
+            print(auteur_instance)
+
             for institution in institutions:
                 institution_instance = Institution.objects.create(**institution,auteur=auteur_instance)
                 auteur_instance.institutions.add(institution_instance)
