@@ -42,6 +42,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         auteurs = validated_data.pop('auteurs',[])
         references_bibliographique = validated_data.pop('references_bibliographique',[])
         article_instance = Article.objects.create(**validated_data)
+
         for mot_cle in mot_cles:
             mot_cle_instance = MotCle.objects.create(**mot_cle,article=article_instance)
             article_instance.mot_cles.add(mot_cle_instance)

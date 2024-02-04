@@ -41,6 +41,6 @@ class Article(models.Model):
 
 
 class UploadedArticle(models.Model):
-    file = models.FileField(upload_to='./')
+    file = models.FileField(upload_to='./EchantillonsArticlesScrapping/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

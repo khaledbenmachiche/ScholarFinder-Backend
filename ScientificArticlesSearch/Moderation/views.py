@@ -16,6 +16,7 @@ class ModerationView(ModelViewSet):
     serializer_class = UserSerializer
     queryset = User.objects.filter(user_type='Mod')
     permission_classes = (IsAuthenticated,IsAdmin,)
+    
     def create(self, request, *args, **kwargs):
         email = request.data.get('email')
         username = request.data.get('username')
@@ -26,17 +27,19 @@ class ModerationView(ModelViewSet):
         
         if not email or not username or not password or not first_name or not last_name:
             return Response({'message': 'Please provide all the required fields.'}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
-            user = User.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name, user_type=user_type)
-            user.save()
-            send_moderator_account_create_email(username, email, first_name, last_name)
-            
-            return Response({'message': 'Moderator created successfully'}, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            return Response({'message': 'User with this username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(e)
+            user, created = User.objects.get_or_create(username=username, email=email)
+            if created:
+                user.set_password(password)
+                user.first_name = first_name
+                user.last_name = last_name
+                user.user_type = user_type
+                user.save()
+                send_moderator_account_create_email(username, email, first_name, last_name)
+                return Response({'message': 'Moderator created successfully'}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'message': 'User with this username or email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -51,7 +54,8 @@ class ModerationView(ModelViewSet):
             return Response({'message': 'Moderator updated successfully'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'message': 'Moderator not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception:
+        except Exception as e:
+            print(e)
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @swagger_auto_schema(
@@ -70,7 +74,7 @@ class ModerationView(ModelViewSet):
             500: openapi.Response('Internal server error'),
         }
     )
-    @action(detail=False, methods=['delete'])
+    @action(detail=False, methods=['delete'], url_path='delete_by_ids', url_name='delete_by_ids')
     def delete_by_ids(self, request, *args, **kwargs):
         moderators_ids = request.data.get('moderators_ids')
         if not moderators_ids:
@@ -83,7 +87,6 @@ class ModerationView(ModelViewSet):
             
             moderators.delete()
             return Response({'message': 'Moderators deleted successfully'}, status=status.HTTP_200_OK)
-        
         except User.DoesNotExist:
             return Response({'message': 'No moderators found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception:

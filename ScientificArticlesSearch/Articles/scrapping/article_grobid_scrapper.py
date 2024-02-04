@@ -90,7 +90,6 @@ def parse_grobid_tei(file_name, public_url, results_directory):
 
     date_element = soup.select_one('date')
     date_str = date_element.text.strip() if date_element else None
-    print(date_str)
     article['date_de_publication'] = extract_date_from_text(date_str)
 
     return article

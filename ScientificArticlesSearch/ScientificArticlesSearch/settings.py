@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -60,13 +61,9 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'Authentication.middleware.AuthMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
-   
-    
 ]
 
 ALLOWED_HOSTS = ['localhost','127.0.0.1']
@@ -95,7 +92,7 @@ ELASTICSEARCH_DSL = {
     "default": {
         "hosts": os.getenv("ELASTICSEARCH_HOSTS"),
         "http_auth": (os.getenv("ELASTICSEARCH_USERNAME"), os.getenv("ELASTICSEARCH_PASSWORD")),
-        'verify_certs': False,
+        'verify_certs': True,
         "ca_certs": os.getenv("ELASTICSEARCH_CA_CERTS"),
     }
 }
@@ -124,29 +121,17 @@ WSGI_APPLICATION = 'ScientificArticlesSearch.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# DATABASES = {
-#   'default': {
-#     'ENGINE': 'django.db.backends.postgresql',
-#     'NAME': os.getenv('DB_NAME'),
-#     'USER': os.getenv('DB_USER'),
-#     'PASSWORD': os.getenv('DB_PASSWORD'),
-#     'HOST': os.getenv('DB_HOST'),
-#     'PORT': os.getenv('DB_PORT'),
-#     'OPTIONS': {'sslmode': 'require'},
-#     'DISABLE_SERVER_SIDE_CURSORS': True,
-#   }
-# }
 DATABASES = {
-  'default': {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': 'ScientificArticlesSearch',
-    'USER': 'khaledbenmachiche',
-    'PASSWORD': 'UHQY3LgJPE8o',
-    'HOST': 'ep-cold-thunder-a5squ40d.us-east-2.aws.neon.tech',
-    'PORT': '5432',
-    
-  }
-}  
+   'default': {
+     'ENGINE': 'django.db.backends.mysql',
+     'NAME': os.getenv('DB_NAME'),
+     'USER': os.getenv('DB_USER'),
+     'PASSWORD': os.getenv('DB_PASSWORD'),
+     'HOST': os.getenv('DB_HOST'),
+     'PORT': os.getenv('DB_PORT'),
+     'DISABLE_SERVER_SIDE_CURSORS': True,
+    }
+}
 
 
 
@@ -209,10 +194,13 @@ API_NAME = 'drive'
 API_VERSION = 'v3'
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
+ARTICLES_FOLDER_ID = "1GaKJSn08mD7tcd3VuR9kGvJXXII6C5iB"
+SCRAPED_FILES_FILES_ID = "1XmbZd44kKHzyWPUR6aoE999inHPp8jdy"
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
