@@ -11,8 +11,12 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 import os
+
+
+
 load_dotenv()
 
 
@@ -24,10 +28,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-53b1by)ov(0^2m^@!$a0=4#ke1o8#&4cwcoh$pk7#inga!=xi&'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True" 
 
 
 # Application definition
@@ -131,6 +135,9 @@ DATABASES = {
      'PASSWORD': os.getenv('DB_PASSWORD'),
      'HOST': os.getenv('DB_HOST'),
      'PORT': os.getenv('DB_PORT'),
+     'OPTIONS': {
+         'unix_socket': '/var/run/mysqld/mysqld.sock',
+     },
      'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 }
@@ -171,7 +178,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
-
+STATIC_ROOT = 'static/' 
 STATIC_URL = 'static/'
 
 # Default primary key field type
