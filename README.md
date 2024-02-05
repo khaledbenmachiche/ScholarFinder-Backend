@@ -32,6 +32,24 @@ cd ScientificArticlesSearch
 python manage.py runserver
 ```
 
+
+# Docker support
+  ## Prerequisites
+    * Docker
+    * Docker Compose
+## Usage
+
+### run the Docker containers :
+
+   ```bash
+   docker compose up --build
+   ```
+### stopping the containers :
+```bash
+docker compose down
+```
+
+
 ## Contributing
 
 
