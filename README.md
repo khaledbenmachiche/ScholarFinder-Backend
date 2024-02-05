@@ -10,7 +10,8 @@ une application web permettant aux utilisateurs authentifiés de rechercher des 
 * pip
 * elasticsearch
 * mysql
-  
+
+
 ## Installation
 1-Clone the repository.
 
