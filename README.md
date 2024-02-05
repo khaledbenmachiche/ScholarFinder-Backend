@@ -33,18 +33,18 @@ python manage.py runserver
 ```
 
 
-# Docker support
+## Docker support
   ## Prerequisites
     * Docker
     * Docker Compose
-## Usage
+### Usage
 
-### run the Docker containers :
+#### run the Docker containers :
 
    ```bash
    docker compose up --build
    ```
-### stopping the containers :
+#### stopping the containers :
 ```bash
 docker compose down
 ```
