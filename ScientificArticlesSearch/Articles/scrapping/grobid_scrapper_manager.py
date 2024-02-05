@@ -19,9 +19,25 @@ class GrobidScrapperManager:
         self.grobid_client = GrobidClient(config_path="./config.json")
         self.download_path = os.path.join(settings.MEDIA_ROOT, 'EchantillonsArticlesScrapping')
         self.results_directory = os.path.join(settings.MEDIA_ROOT, 'ScrapingResults')
-        self.scraped_files_file_id = "1Y6YjHSI8Pwb24Cm3ammIK6_jJH6yzumJ"
-        self.folder_id = "1GaKJSn08mD7tcd3VuR9kGvJXXII6C5iB"
+        self.scraped_files_file_id = settings.SCRAPED_FILES_FILES_ID
+        self.folder_id = settings.ARTICLES_FOLDER_ID
     
+    def __init__(self, drive_manager):
+        self.drive_manager = drive_manager
+        self.grobid_client = GrobidClient(config_path="./config.json")
+        self.download_path = os.path.join(settings.MEDIA_ROOT, 'EchantillonsArticlesScrapping')
+        self.results_directory = os.path.join(settings.MEDIA_ROOT, 'ScrapingResults')
+        self.scraped_files_file_id = settings.SCRAPED_FILES_FILES_ID
+        self.folder_id = settings.ARTICLES_FOLDER_ID
+    
+    def __init__(self, drive_manager, folder_id):
+        self.drive_manager = drive_manager
+        self.grobid_client = GrobidClient(config_path="./config.json")
+        self.download_path = os.path.join(settings.MEDIA_ROOT, 'EchantillonsArticlesScrapping')
+        self.results_directory = os.path.join(settings.MEDIA_ROOT, 'ScrapingResults')
+        self.scraped_files_file_id = settings.SCRAPED_FILES_FILES_ID
+        self.folder_id = folder_id
+        
     def _download_scrapping_folder(self):
         processed_files = self.drive_manager.get_file_content(self.scraped_files_file_id).splitlines()
         results = self.drive_manager.list_files(self.folder_id)
@@ -59,7 +75,6 @@ class GrobidScrapperManager:
         serializer = ArticleSerializer(data=article)
         
         if serializer.is_valid():
-            #print(serializer.validated_data)
             serializer.create(serializer.validated_data)
         else:
             errors = serializer.errors
@@ -90,7 +105,7 @@ class GrobidScrapperManager:
                                 file_metadata = self.drive_manager.get_file_metadata(file_id)
                                 public_url = file_metadata.get('webContentLink') 
                                 article = parse_grobid_tei(filename, public_url,self.results_directory)
-                                error = self.save_article_to_database(article)
+                                self.save_article_to_database(article)
                                 processed_files.append(file_name)
                                 updated_content = '\n'.join(processed_files)
                                 media = MediaIoBaseUpload(BytesIO(updated_content.encode('utf-8')), mimetype='text/plain', resumable=True)

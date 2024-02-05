@@ -1,7 +1,7 @@
 from .google_api_service import create_service
 from io import BytesIO, FileIO
-from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
-
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload,MediaFileUpload
+import os
 class GoogleDriveAPIHandler:
     def __init__(self, client_secret_file, api_name, api_version, scopes):
         self.service = create_service(client_secret_file, api_name, api_version, scopes)
@@ -54,5 +54,18 @@ class GoogleDriveAPIHandler:
             status, done = downloader.next_chunk()
             print(f"Download {int(status.progress() * 100)}%.")
         print("Download Complete!")
+    
+    def upload_file(self, file_name, file_path, folder_id):
+        actual_file_name = os.path.basename(file_name)
+        file_metadata = {
+            'name': actual_file_name,
+            'parents': [folder_id]
+        }
+        print(f"Uploading file: {actual_file_name}")
+        print(f"File path: {file_path}")
+        
+        media = MediaFileUpload(file_path, resumable=True)
+        file = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        return file.get('id')
         
     

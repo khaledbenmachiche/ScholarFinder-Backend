@@ -9,7 +9,8 @@ from .CustomPermissions import IsAuth,IsAdmin,IsModerator
 from rest_framework.permissions import AllowAny , IsAuthenticated
 from Articles.documents import ArticleDocument
 from .serializers import ArticleSearchResultSerializer
-
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 
 class PaginatedElasticSearchAPIView(APIView, LimitOffsetPagination):
     serializer_class = None
@@ -41,7 +42,58 @@ class SearchArticles(PaginatedElasticSearchAPIView):
     serializer_class = ArticleSearchResultSerializer
     document_class = ArticleDocument
     permission_classes = (IsAuthenticated,)
-
+    
+    @swagger_auto_schema(
+        operation_description="Recherche des articles dans le titre, les mots clés, les auteurs et le texte intégral, tous les articles contenant un ou plusieurs mots spécifiés \n dans le titre, les mots clés, les auteurs et le texte intégral seront retournés.\n si des filtres sont spécifiés, les articles retournés doivent satisfaire les filtres spécifiés.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_PATH,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='le titre, les mots clés, les auteurs et le texte intégral à rechercher dans les articles.',
+            ),
+            openapi.Parameter(
+                name='keywords',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='Mots clés à rechercher dans les articles retourner par la recherche initial.'
+            ),
+            openapi.Parameter(
+                name='authors',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='Auteurs à rechercher dans les articles retourner par la recherche initial.'
+            ),
+            openapi.Parameter(
+                name='institutions',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='Institutions à rechercher dans les articles retourner par la recherche initial.'
+            ),
+            openapi.Parameter(
+                name='start_date',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='Date de début de publication des articles retourner par la recherche initial.'
+            ),
+            openapi.Parameter(
+                name='end_date',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='Date de fin de publication des articles.'
+            ),
+        ],
+        responses={200: ArticleSearchResultSerializer(many=True)}
+    )
+    def get(self, request, query):
+        return super().get(request, query)
+    
     def generate_q_expression(self, query, filters=None):
         base_q = Q(
             "multi_match",

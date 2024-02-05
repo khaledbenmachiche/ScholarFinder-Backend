@@ -18,12 +18,23 @@ from .CustomPermissions import IsAdmin, IsModerator
 from .utils import extract_drive_folder_id
 from .scrapping.grobid_scrapper_manager import GrobidScrapperManager
 from django.http import Http404
+from rest_framework.exceptions import MethodNotAllowed
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from .google_drive.google_drive_api_handler import GoogleDriveAPIHandler
+from django.conf import settings
 
 class ArticleViewSet(ModelViewSet):
     serializer_class = ArticleSerializer
     queryset = Article.objects.all()
+    google_drive_handler  = GoogleDriveAPIHandler(
+            settings.CLIENT_SECRET_FILE,
+            settings.API_NAME,
+            settings.API_VERSION,
+            settings.SCOPES,
+        )
     
-    @action(detail=False, methods=['post'], url_path='upload-via-file',permission_classes=(IsAuthenticated,))
+    @action(detail=False, methods=['get'], url_path='validated',permission_classes=(IsAuthenticated,))
     def get_validated_articles(self,request,*args,**kwargs):
         try:
             articles = Article.objects.filter(is_validated=True)
@@ -32,7 +43,8 @@ class ArticleViewSet(ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
     @action(detail=False,methods=['get'],url_path='not_validated',permission_classes=(IsAuthenticated,IsModerator,))
     def get_not_validated_articles(self,request,*args,**kwargs):
         try:
@@ -42,6 +54,7 @@ class ArticleViewSet(ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     @action(detail=True,methods=['put'],url_path='validate',permission_classes=(IsAuthenticated,IsModerator,))
     def validate_article(self,request,*args,**kwargs):
@@ -57,21 +70,58 @@ class ArticleViewSet(ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via file",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='Article file to upload'),
+            },
+            required=['file'],
+        ),
+        responses={
+            201: openapi.Response('Article uploaded successfully!'),
+            400: openapi.Response('Bad Request - Validation Error'),
+            500: openapi.Response('Internal Server Error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-file',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_file(self, request, *args, **kwargs):
         try:
             if(request.FILES.get('file') is not None):
                 form = ArticleUploadForm(request.POST, request.FILES)
                 if form.is_valid():
-                    form.save()
+                    instance = form.save()
+                    fs = FileSystemStorage()
+                    file_path = fs.path(instance.file.name)
+                    
+                    self.google_drive_handler.upload_file(file_name=instance.file.name, file_path=file_path, folder_id=settings.GOOGLE_DRIVE_SCRAPPING_FOLDER_ID)
+                    
+                    scrapper = GrobidScrapperManager(drive_manager=self.google_drive_handler)
+                    scrapper.run_scrapper()
                     return Response({'message': 'Article uploaded successfully!'}, status=status.HTTP_201_CREATED)
                 else:
                     return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(e)
+        except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via file",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='Article file to upload'),
+            },
+            required=['file'],
+        ),
+        responses={
+            201: openapi.Response('Article uploaded successfully!'),
+            400: openapi.Response('Bad Request - Validation Error'),
+            500: openapi.Response('Internal Server Error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-zip',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_zip(self, request, *args, **kwargs):
         try:
@@ -85,21 +135,39 @@ class ArticleViewSet(ModelViewSet):
                     return Response({'message': 'No PDF files found in the zip file.'}, status=status.HTTP_400_BAD_REQUEST)
                 
                 fs = FileSystemStorage()
-                for file in zip.filelist:
+                for file in pdf_files:
                     if file.filename.lower().endswith('.pdf'):
                         file_name = file.filename.split('/')[-1]
+                        file_name = os.path.join('EchantillonsArticlesScrapping/' ,file_name)
                         file_content = ContentFile(zip.read(file))
                         file_name = fs.save(file_name, file_content)
-                        file_path = fs.url(file_name)
-                        uploaded_article = UploadedArticle(file=file_path.lstrip('/'))
-                        uploaded_article.save()
+                        file_path = fs.path(file_name)
+                        self.google_drive_handler.upload_file(file_name=file_name, file_path=file_path, folder_id=settings.GOOGLE_DRIVE_SCRAPPING_FOLDER_ID)
+                
+                scrapper = GrobidScrapperManager(drive_manager=self.google_drive_handler)
+                scrapper.run_scrapper()
             
             return Response({'message': 'Articles uploaded successfully'}, status=status.HTTP_201_CREATED)
                 
         except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via URL qui contient un seul article",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'url': openapi.Schema(type=openapi.TYPE_STRING, description='URL of the PDF file'),
+            },
+            required=['url'],
+        ),
+        responses={
+            201: openapi.Response('File downloaded and saved successfully'),
+            400: openapi.Response('Please provide a URL'),
+            404: openapi.Response('File not found'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-url',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_url(self, request, *args, **kwargs):
         try:
@@ -108,34 +176,57 @@ class ArticleViewSet(ModelViewSet):
                     response = requests.get(pdf_url)
                     if response.status_code == 200:
                         file_name = pdf_url.split('/')[-1]
+                        file_name = os.path.join('EchantillonsArticlesScrapping/' ,file_name)
                         file_content = ContentFile(response.content)
                         fs = FileSystemStorage()
                         file_name = fs.save(file_name, file_content)
-                        file_path = fs.url(file_name)
-                        uploaded_article = UploadedArticle(file=file_path.lstrip('/'))
-                        uploaded_article.save()
+                        file_path = fs.path(file_name)
+                        self.google_drive_handler.upload_file(file_name=file_name, file_path=file_path, folder_id=settings.GOOGLE_DRIVE_SCRAPPING_FOLDER_ID)
+                        scrapper = GrobidScrapperManager(drive_manager=self.google_drive_handler)
+                        scrapper.run_scrapper()
                         return Response({'message': 'File downloaded and saved successfully'}, status=status.HTTP_201_CREATED)
                     else:
                         return Response({'message': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({'message': 'Please provide a url'}, status=status.HTTP_400_BAD_REQUEST)
             
-        except Exception as e:
-            print(e)
+        except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via URL qui contint plusieur article",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'url': openapi.Schema(type=openapi.TYPE_STRING, description='URL of the PDF file'),
+            },
+            required=['url'],
+        ),
+        responses={
+            201: openapi.Response('File downloaded and saved successfully'),
+            400: openapi.Response('Please provide a drive url'),
+            500: openapi.Response('Internal server error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-drive',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_drive(self, request, *args, **kwargs):
         try:
-            GrobidScrapperManager().run_scrapper()
+            drive_url = request.data.get('url')
+            if not drive_url:
+                return Response({'message': 'Please provide a drive url'}, status=status.HTTP_400_BAD_REQUEST)
+            if not drive_url.startswith('https://drive.google.com'):
+                return Response({'message': 'Invalid drive url'}, status=status.HTTP_400_BAD_REQUEST)
+        
+            scrapper = GrobidScrapperManager(drive_manager=self.google_drive_handler, folder_id=extract_drive_folder_id(drive_url))
+            scrapper.run_scrapper()
             return Response({'message': 'File downloaded and saved successfully'}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            print(e)
+        except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    def create(self, request, *args, **kwargs):
-        return self.super().create(request, *args, **kwargs)
-    
     def update(self, request, *args, **kwargs):
-        return self.super().update(request, *args, **kwargs)
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(auto_schema=None)
+    def create(self, request, *args, **kwargs):
+        raise MethodNotAllowed("POST")
