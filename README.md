@@ -25,7 +25,12 @@ python -m venv env
 source env/bin/activate   # On Windows, use env\Scripts\activate
 pip install -r requirements.txt
 ```
--Additionally, you might need to configure your database settings in the `settings.py` file and perform migrations accordingly.
+**Additionally, you might need to configure your database settings in the `.env` file and perform migrations accordingly. The format for the `.env` file can be found in `./ScientificArticlesSearch/.env.example`.
+
+**Create a New `.env` File:** Copy the contents of `./ScientificArticlesSearch/.env.example` and create a new file named `.env` in the same directory.
+
+
+**Edit the `.env` File:** Open the newly created `.env` file and update the database-related configurations with your own settings. This may include settings such as `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, etc.
 
 3-Start the development server.
 
@@ -34,6 +39,18 @@ cd ScientificArticlesSearch
 python manage.py runserver
 ```
 
+## Unit Tests
+To ensure the robustness and correctness of the application, unit tests are included. Follow these steps to run the unit tests:
+1. **Navigate to the Project Directory:**
+
+   ```bash
+   cd ScientificArticlesSearch
+   ```
+2. Run Unit Tests
+   ```bash
+   python manage.py test
+   ```
+   
 
 ## Docker support
   ## Prerequisites
@@ -77,6 +94,3 @@ git push origin feature/my-feature
   ```bash
   pip freeze > requirements.txt
   ```
-
-
-
