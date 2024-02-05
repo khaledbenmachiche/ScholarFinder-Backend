@@ -25,6 +25,7 @@ python -m venv env
 source env/bin/activate   # On Windows, use env\Scripts\activate
 pip install -r requirements.txt
 ```
+
 **Additionally, you might need to configure your database settings in the `.env` file and perform migrations accordingly. The format for the `.env` file can be found in `./ScientificArticlesSearch/.env.example`.
 
 **Create a New `.env` File:** Copy the contents of `./ScientificArticlesSearch/.env.example` and create a new file named `.env` in the same directory.
