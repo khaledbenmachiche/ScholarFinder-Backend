@@ -20,6 +20,7 @@ from .scrapping.grobid_scrapper_manager import GrobidScrapperManager
 from django.http import Http404
 from rest_framework.exceptions import MethodNotAllowed
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .google_drive.google_drive_api_handler import GoogleDriveAPIHandler
 from django.conf import settings
 
@@ -69,7 +70,22 @@ class ArticleViewSet(ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via file",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='Article file to upload'),
+            },
+            required=['file'],
+        ),
+        responses={
+            201: openapi.Response('Article uploaded successfully!'),
+            400: openapi.Response('Bad Request - Validation Error'),
+            500: openapi.Response('Internal Server Error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-file',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_file(self, request, *args, **kwargs):
         try:
@@ -90,6 +106,22 @@ class ArticleViewSet(ModelViewSet):
         except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via file",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='Article file to upload'),
+            },
+            required=['file'],
+        ),
+        responses={
+            201: openapi.Response('Article uploaded successfully!'),
+            400: openapi.Response('Bad Request - Validation Error'),
+            500: openapi.Response('Internal Server Error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-zip',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_zip(self, request, *args, **kwargs):
         try:
@@ -120,7 +152,22 @@ class ArticleViewSet(ModelViewSet):
         except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via URL qui contient un seul article",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'url': openapi.Schema(type=openapi.TYPE_STRING, description='URL of the PDF file'),
+            },
+            required=['url'],
+        ),
+        responses={
+            201: openapi.Response('File downloaded and saved successfully'),
+            400: openapi.Response('Please provide a URL'),
+            404: openapi.Response('File not found'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-url',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_url(self, request, *args, **kwargs):
         try:
@@ -146,7 +193,22 @@ class ArticleViewSet(ModelViewSet):
         except Exception:
             return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    
+    @swagger_auto_schema(
+        methods=['post'],
+        operation_description="Upload an article via URL qui contint plusieur article",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'url': openapi.Schema(type=openapi.TYPE_STRING, description='URL of the PDF file'),
+            },
+            required=['url'],
+        ),
+        responses={
+            201: openapi.Response('File downloaded and saved successfully'),
+            400: openapi.Response('Please provide a drive url'),
+            500: openapi.Response('Internal server error'),
+        },
+    )
     @action(detail=False, methods=['post'], url_path='upload-via-drive',permission_classes=(IsAuthenticated,IsAdmin,))
     def upload_article_via_drive(self, request, *args, **kwargs):
         try:

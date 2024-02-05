@@ -35,7 +35,7 @@ class ModerationView(ModelViewSet):
                 user.last_name = last_name
                 user.user_type = user_type
                 user.save()
-                send_moderator_account_create_email(username, email, first_name, last_name)
+                send_moderator_account_create_email(username, email, first_name, last_name,password)
                 return Response({'message': 'Moderator created successfully'}, status=status.HTTP_201_CREATED)
             else:
                 return Response({'message': 'User with this username or email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
