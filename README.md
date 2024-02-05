@@ -8,6 +8,8 @@ une application web permettant aux utilisateurs authentifiés de rechercher des 
 
 * python
 * pip
+* elasticsearch
+* mysql
   
 ## Installation
 1-Clone the repository.
