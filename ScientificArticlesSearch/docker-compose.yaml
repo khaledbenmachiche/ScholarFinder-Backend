@@ -3,15 +3,12 @@ version: '3.8'
 services:
   elasticsearch:
     image: elasticsearch:8.12.0
-    container_name: elasticsearch-container
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     ports:
       - "9200:9200"
-      - "9300:9300"
     networks:
       - shared-network
 
@@ -22,25 +19,18 @@ services:
     volumes:
       - data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]      
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
       timeout: 20s
       retries: 10
     networks:
       - shared-network
-  
-  grobid:
-    image: lfoppiano/grobid:0.8.0-arm
-    init: true
-    container_name: grobid-container
-    restart: always
-    ports:
-      - "8070:8070"
-    
+
   backend:
     build: 
       context: .
@@ -54,8 +44,17 @@ services:
       - "8000:8000"
     depends_on:
       - db
-      - elasticsearch
-      - grobid
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - shared-network
+
+  grobid:
+    image: lfoppiano/grobid:0.8.0-arm
+    container_name: tp-igl-grobid
+    restart: always
+    networks:
+      - shared-network
 
 volumes:
   data:
@@ -63,4 +62,3 @@ volumes:
 networks:
   shared-network:
     driver: bridge
-
