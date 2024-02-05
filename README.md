@@ -55,10 +55,10 @@ To ensure the robustness and correctness of the application, unit tests are incl
    
 
 ## Docker support
-  ## Prerequisites
+  ### Prerequisites
     * Docker
     * Docker Compose
-### Usage
+  ### Usage
 
 #### run the Docker containers :
 
