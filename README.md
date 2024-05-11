@@ -1,7 +1,5 @@
-# TP IGL Backend
-
 ## Project Overview
-une application web permettant aux utilisateurs authentifiés de rechercher des articles scientifiques. Les utilisateurs peuvent filtrer les résultats, afficher les détails des articles, y compris le texte intégral en formats texte et PDF, et sauvegarder leurs articles préférés. Les administrateurs peuvent gérer les modérateurs et lancer des opérations d'upload d'articles scientifiques depuis des fichiers PDF. Après l'upload, les modérateurs peuvent vérifier et corriger les informations extraites à partir des articles PDF.
+An intuitive web platform allowing users to browse and discover scientific articles with ease. Users can filter results, view article details, including full-text in text and PDF formats, and save their favorite articles. Administrators can manage moderators and initiate uploads of scientific articles from PDF files. Subsequently, moderators can verify and correct information extracted from the PDF articles.
 
 # Getting Started
 ## Prerequisites
