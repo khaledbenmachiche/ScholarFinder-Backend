@@ -14,8 +14,8 @@ An intuitive web platform allowing users to browse and discover scientific artic
 1-Clone the repository.
 
 ```bash
-git clone https://github.com/khaledbenmachiche/tp_igl_backend
-cd tp_igl_backend
+git clone https://github.com/khaledbenmachiche/ScholarFinder-Backend
+cd ScholarFinder-Backend
 ```
 2-Install dependencies.
 
