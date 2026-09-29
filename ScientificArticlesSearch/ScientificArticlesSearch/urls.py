@@ -14,8 +14,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path,include
 from django.urls import include, path
 
 
@@ -27,7 +28,7 @@ from rest_framework_swagger.views import get_swagger_view
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="TP IGL",
+        title="ScholarFinder API",
         default_version='v1',),
     public=True,
     permission_classes=(permissions.AllowAny,),
@@ -42,3 +43,6 @@ urlpatterns = [
     path("api/articles_favoris/", include("ArticlesFavoris.urls")),
     path('docs/', schema_view.with_ui('swagger', cache_timeout=0),name='schema-swagger-ui'),
 ]
+
+# Uploaded PDFs (only served by Django in DEBUG; use a web server in production).
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

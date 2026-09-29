@@ -11,9 +11,13 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 class ArticleFavorisViewSet(viewsets.ModelViewSet):
-    queryset = ArticleFavoris.objects.all()
     serializer_class = ArticleFavorisSerializer
     permission_classes = [IsAuthenticated]
+    # Favorites are added/removed through create/destroy only; no update endpoint.
+    http_method_names = ["get", "post", "delete", "head", "options"]
+
+    def get_queryset(self):
+        return ArticleFavoris.objects.filter(user=self.request.user)
     
     @swagger_auto_schema(
         operation_description="Get all articles in favorites , le id d'un utilisateur n'est pas specifier dans les parametres car on utilise le token d'authentification pour recuperer l'utilisateur",
