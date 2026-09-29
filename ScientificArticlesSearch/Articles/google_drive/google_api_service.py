@@ -1,40 +1,40 @@
-import pickle
 import os
-from google_auth_oauthlib.flow import  InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+import pickle
+
 from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 
 
-def create_service(client_secret_file, api_name, api_version, *scopes):
-    CLIENT_SECRET_FILE = client_secret_file
-    API_SERVICE_NAME = api_name
-    API_VERSION = api_version
-    SCOPES = [scope for scope in scopes[0]]
-    
+class GoogleDriveNotConfigured(RuntimeError):
+    pass
+
+
+def create_service(client_secret_file, api_name, api_version, scopes, token_file=None):
+    """Build an authorised Google API client.
+
+    The OAuth token is cached in `token_file`. The interactive browser consent
+    flow only runs when there is no usable token, which is why this must never
+    be called at import time.
+    """
+    token_file = token_file or f"token_{api_name}_{api_version}.pickle"
     cred = None
-
-    pickle_file = f'token_{API_SERVICE_NAME}_{API_VERSION}.pickle'
-    # print(pickle_file)
-
-    if os.path.exists(pickle_file):
-        with open(pickle_file, 'rb') as token:
+    if os.path.exists(token_file):
+        with open(token_file, "rb") as token:
             cred = pickle.load(token)
 
     if not cred or not cred.valid:
         if cred and cred.expired and cred.refresh_token:
             cred.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            if not client_secret_file or not os.path.exists(client_secret_file):
+                raise GoogleDriveNotConfigured(
+                    "Google Drive is enabled but neither a valid token nor the OAuth client secret file was found"
+                )
+            flow = InstalledAppFlow.from_client_secrets_file(client_secret_file, list(scopes))
             cred = flow.run_local_server()
 
-        with open(pickle_file, 'wb') as token:
+        with open(token_file, "wb") as token:
             pickle.dump(cred, token)
 
-    try:
-        service = build(API_SERVICE_NAME, API_VERSION, credentials=cred)
-        return service
-    except Exception as e:
-        print('Unable to connect.')
-        print(e)
-        return None
+    return build(api_name, api_version, credentials=cred)

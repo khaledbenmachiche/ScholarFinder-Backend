@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic document shaped like GROBID 0.8.1 processFulltextDocument output.
+     It exercises the edge cases seen on real papers: affiliation-only <author>
+     entries, authors without affiliation, several affiliations per author,
+     heading-less continuation divs, formulas, annexes, and references whose
+     title only survives in a note or in the raw citation string. -->
+<TEI xml:space="preserve" xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="en">
+		<fileDesc>
+			<titleStmt>
+				<title level="a" type="main">Graph Neural Networks for Citation Recommendation</title>
+			</titleStmt>
+			<publicationStmt>
+				<publisher/>
+				<availability status="unknown"><licence/></availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<analytic>
+						<author role="corresp">
+							<persName><forename type="first">Amina</forename><forename type="middle">K</forename><surname>Benali</surname></persName>
+							<email>a.benali@esi.dz</email>
+							<affiliation key="aff0">
+								<orgName type="department">Department of Computer Science</orgName>
+								<orgName type="institution">École nationale Supérieure d'Informatique</orgName>
+								<address><settlement>Algiers</settlement><country key="DZ">Algeria</country></address>
+							</affiliation>
+							<affiliation key="aff1">
+								<orgName type="laboratory">LCSI Laboratory</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">John</forename><surname>Smith</surname></persName>
+						</author>
+						<author>
+							<affiliation key="aff2">
+								<orgName type="institution">Google Research</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">John</forename><surname>Smith</surname></persName>
+						</author>
+						<title level="a" type="main">Graph Neural Networks for Citation Recommendation</title>
+					</analytic>
+					<monogr>
+						<imprint>
+							<date type="submitted" when="2021-01-10">10 Jan 2021</date>
+							<date type="published" when="2021-06-15">15 June 2021</date>
+						</imprint>
+					</monogr>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<appInfo>
+				<application version="0.8.1" ident="GROBID" when="2024-01-01T00:00+0000">
+					<desc>GROBID - A machine learning software for extracting information from scholarly documents</desc>
+					<ref target="https://github.com/kermitt2/grobid"/>
+				</application>
+			</appInfo>
+		</encodingDesc>
+		<profileDesc>
+			<textClass>
+				<keywords>
+					<term>graph neural networks</term>
+					<term>recommender systems</term>
+					<term>Graph Neural Networks</term>
+				</keywords>
+			</textClass>
+			<abstract>
+				<div xmlns="http://www.tei-c.org/ns/1.0">
+					<p>We study citation recommendation.</p>
+					<p>Our model   outperforms baselines.</p>
+				</div>
+			</abstract>
+		</profileDesc>
+	</teiHeader>
+	<text xml:lang="en">
+		<body>
+			<div xmlns="http://www.tei-c.org/ns/1.0">
+				<head n="1">Introduction</head>
+				<p>Citation recommendation helps researchers <ref type="bibr" target="#b0">[1]</ref>.</p>
+			</div>
+			<div xmlns="http://www.tei-c.org/ns/1.0">
+				<p>This paragraph follows a figure and has no heading.</p>
+			</div>
+			<div xmlns="http://www.tei-c.org/ns/1.0">
+				<head n="2">Method</head>
+				<p>We define the score as follows.</p>
+				<formula xml:id="formula_0">s(u, v) = σ(h_u · h_v)<label>(1)</label></formula>
+			</div>
+		</body>
+		<back>
+			<div type="acknowledgement">
+				<div xmlns="http://www.tei-c.org/ns/1.0">
+					<head>Acknowledgements</head>
+					<p>We thank the reviewers.</p>
+				</div>
+			</div>
+			<div type="annex">
+				<div xmlns="http://www.tei-c.org/ns/1.0">
+					<head n="A">Hyper-parameters</head>
+					<p>Learning rate 0.001.</p>
+				</div>
+			</div>
+			<div type="references">
+				<listBibl>
+					<biblStruct xml:id="b0">
+						<analytic>
+							<title level="a" type="main">Semi-supervised classification with graph convolutional networks</title>
+							<author><persName><forename type="first">Thomas</forename><forename type="middle">N</forename><surname>Kipf</surname></persName></author>
+							<author><persName><forename type="first">Max</forename><surname>Welling</surname></persName></author>
+						</analytic>
+						<monogr>
+							<title level="j">Journal of Machine Learning</title>
+							<imprint>
+								<biblScope unit="volume">12</biblScope>
+								<biblScope unit="issue">3</biblScope>
+								<biblScope unit="page" from="100" to="110"/>
+								<date type="published" when="2017">2017</date>
+							</imprint>
+						</monogr>
+						<idno type="DOI">10.1000/example.1</idno>
+					</biblStruct>
+					<biblStruct xml:id="b1">
+						<monogr>
+							<title/>
+							<author><persName><forename type="first">Jimmy</forename><surname>Lei Ba</surname></persName></author>
+							<idno type="arXiv">arXiv:1607.06450</idno>
+							<imprint><date type="published" when="2016">2016</date></imprint>
+						</monogr>
+						<note type="report_type">Layer normalization. arXiv preprint</note>
+					</biblStruct>
+					<biblStruct xml:id="b2">
+						<monogr>
+							<title/>
+							<imprint><date/></imprint>
+						</monogr>
+						<note type="raw_reference">Anonymous. Some   unparseable reference, 1999.</note>
+					</biblStruct>
+				</listBibl>
+			</div>
+		</back>
+	</text>
+</TEI>

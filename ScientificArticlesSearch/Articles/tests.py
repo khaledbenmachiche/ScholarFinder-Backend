@@ -1,356 +1,146 @@
+import datetime as dt
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from .models import Article,Auteur,Institution,MotCle,ReferenceBibliographique
+
+from Authentication.models import User
+
+from .models import Article, Auteur, Institution, MotCle, ReferenceBibliographique
 from .serializers import ArticleSerializer
-import urllib3
+
+ARTICLE_PAYLOAD = {
+    "titre": "titre corrigé",
+    "resume": "resume",
+    "text_integral": "text_integral",
+    "url": "url",
+    "date_de_publication": "2021-01-01",
+    "mot_cles": [{"text": "graph coloring"}, {"text": "heuristics"}],
+    "auteurs": [{"nom": "Yessed", "institutions": [{"nom": "ESI"}]}],
+    "references_bibliographique": [{"nom": "ICTCS 2020"}],
+}
 
 
-class InstitutionTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.institution = Institution.objects.create(nom="ESI")
-        
-    def test_institution_content(self):
-        self.assertEquals(self.institution.nom,'ESI')
-        
-
-class MotCleTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.motcle = MotCle.objects.create(text="Graph Coloring Problem")
-        
-    def test_motcle_content(self):
-        self.assertEquals(self.motcle.text,'Graph Coloring Problem')
+def create_article(titre="titre", is_validated=False):
+    article = Article.objects.create(
+        titre=titre, resume="resume", text_integral="text_integral", url="url",
+        date_de_publication="2021-01-01", is_validated=is_validated,
+    )
+    auteur = Auteur.objects.create(nom="nom")
+    auteur.institutions.set([Institution.objects.create(nom="nom")])
+    article.auteurs.set([auteur])
+    article.mot_cles.set([MotCle.objects.create(text="text")])
+    article.references_bibliographique.set([ReferenceBibliographique.objects.create(nom="nom")])
+    return article
 
 
-class ReferenceBibliographiqueTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):    
-        cls.referencebibliographique = ReferenceBibliographique.objects.create(nom="International Conference on New Trends in Computing Sciences (ICTCS)")
-    
-    def test_referencebibliographique_content(self):
-        self.assertEquals(self.referencebibliographique.nom,'International Conference on New Trends in Computing Sciences (ICTCS)')
-        
-class AuteurTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        institution = Institution.objects.create(nom="ESI")
-        
-        cls.auteur = Auteur.objects.create(nom="Yessed")
-        cls.auteur.institutions.set([institution])
-        
-    def test_auteur_content(self):
-        self.assertEquals(self.auteur.nom,'Yessed')
-        self.assertEquals(self.auteur.institutions.first().nom,'ESI')
-        
-class ArticleTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        institution = Institution.objects.create(nom="ESI")
-        motcle = MotCle.objects.create(text="Graph Coloring Problem")
-        referencebibliographique = ReferenceBibliographique.objects.create(nom="International Conference on New Trends in Computing Sciences (ICTCS)")
-        auteur = Auteur.objects.create(nom="Yessed")
-        auteur.institutions.set([institution])
-        
-        cls.article = Article.objects.create(titre="titre",resume="resume",text_integral="text_integral",url="url",date_de_publication="2021-01-01")
-        cls.article.mot_cles.set([motcle])
-        cls.article.auteurs.set([auteur])
-        cls.article.references_bibliographique.set([referencebibliographique])
+class ArticleModelTests(TestCase):
+    def test_article_relations(self):
+        article = create_article()
+        self.assertEqual(article.titre, "titre")
+        self.assertEqual(article.mot_cles.get().text, "text")
+        self.assertEqual(article.auteurs.get().institutions.get().nom, "nom")
+        self.assertEqual(article.references_bibliographique.get().nom, "nom")
+        self.assertFalse(article.is_validated)
 
-    def test_article_content(self):
-        self.assertEquals(self.article.titre,'titre')
-        self.assertEquals(self.article.resume,'resume')
-        self.assertEquals(self.article.text_integral,'text_integral')
-        self.assertEquals(self.article.url,'url')
-        self.assertEquals(self.article.date_de_publication,'2021-01-01')
-        self.assertEquals(self.article.mot_cles.first().text,'Graph Coloring Problem')
-        self.assertEquals(self.article.auteurs.first().nom,'Yessed')
-        self.assertEquals(self.article.auteurs.first().institutions.first().nom,'ESI')
-        self.assertEquals(self.article.references_bibliographique.first().nom,'International Conference on New Trends in Computing Sciences (ICTCS)')
-        
+
+class ArticleSerializerTests(TestCase):
+    def test_create_with_nested_objects(self):
+        serializer = ArticleSerializer(data=ARTICLE_PAYLOAD)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        article = serializer.save()
+        self.assertEqual(article.date_de_publication, dt.date(2021, 1, 1))
+        self.assertEqual(sorted(article.mot_cles.values_list("text", flat=True)), ["graph coloring", "heuristics"])
+        self.assertEqual(article.auteurs.get().institutions.get().nom, "ESI")
+
+    def test_update_replaces_nested_lists(self):
+        article = create_article()
+        serializer = ArticleSerializer(article, data=ARTICLE_PAYLOAD)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        article.refresh_from_db()
+        self.assertEqual(article.titre, "titre corrigé")
+        self.assertEqual(sorted(article.mot_cles.values_list("text", flat=True)), ["graph coloring", "heuristics"])
+        self.assertEqual(list(article.auteurs.values_list("nom", flat=True)), ["Yessed"])
+
+    def test_partial_update_keeps_nested_lists(self):
+        article = create_article()
+        serializer = ArticleSerializer(article, data={"titre": "nouveau"}, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        self.assertEqual(article.mot_cles.get().text, "text")
+
 
 class ArticleApiTests(TestCase):
-    @classmethod
-    def setUpTestData(cls) -> None:
-        institution = Institution.objects.create(nom="nom")
-        motcle = MotCle.objects.create(text="text")
-        referencebibliographique = ReferenceBibliographique.objects.create(nom="nom")
-        auteur = Auteur.objects.create(nom="nom")
-        auteur.institutions.set([institution])
-        
-        cls.article = Article.objects.create(
-            titre="titre",
-            resume="resume",
-            text_integral="text_integral",
-            url="url",
-            date_de_publication="2021-01-01"
-        )
-        cls.article.mot_cles.set([motcle])
-        cls.article.auteurs.set([auteur])
-        cls.article.references_bibliographique.set([referencebibliographique])
-    
-    def setUp(self) -> None:
-        self.client = APIClient()
-    
-    def test_get_all_articles(self):
-        url = reverse('article-list')
-        response = self.client.get(url)
-        articles = Article.objects.all()
-        serializer = ArticleSerializer(articles, many=True)
-        self.assertEqual(response.data.get('results'), serializer.data)
-        self.assertEqual(response.data.get('count'), len(serializer.data))
+    def setUp(self):
+        self.pending = create_article("pending")
+        self.validated = create_article("validated", is_validated=True)
+        self.anonymous = APIClient()
+        self.user = self._client("reader", "User")
+        self.moderator = self._client("moderator", "Mod")
+
+    @staticmethod
+    def _client(username, user_type):
+        client = APIClient()
+        client.force_authenticate(User.objects.create_user(username=username, password="pw", user_type=user_type))
+        return client
+
+    def test_public_list_only_shows_validated_articles(self):
+        response = self.anonymous.get(reverse("article-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
-    def test_post_article(self):
-        url = reverse('article-list')
-        data = {
-            "titre": "titre",
-            "resume": "resume",
-            "text_integral": "text_integral",
-            "url": "url",
-            "date_de_publication": "2021-01-01",
-            "mot_cles": [
-                {
-                    "text": "text"
-                }
-            ],
-            "auteurs": [
-                {
-                    "nom": "nom",
-                    "institutions": [
-                        {
-                            "nom": "nom",
-                        }
-                    ]
-                }
-            ],
-            "references_bibliographique": [
-                {
-                    "nom": "nom"
-                }
-            ]
-        }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual([a["titre"] for a in response.data["results"]], ["validated"])
+
+    def test_moderators_see_pending_articles(self):
+        response = self.moderator.get(reverse("article-list"))
+        self.assertEqual({a["titre"] for a in response.data["results"]}, {"pending", "validated"})
+
+    def test_retrieve(self):
+        self.assertEqual(self.anonymous.get(reverse("article-detail", args=[self.validated.id])).status_code, 200)
+        self.assertEqual(self.anonymous.get(reverse("article-detail", args=[self.pending.id])).status_code, 404)
+        self.assertEqual(self.moderator.get(reverse("article-detail", args=[self.pending.id])).status_code, 200)
+
+    def test_articles_cannot_be_created_directly(self):
+        response = self.moderator.post(reverse("article-list"), ARTICLE_PAYLOAD, format="json")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_moderator_corrects_article(self):
+        url = reverse("article-detail", args=[self.pending.id])
+        response = self.moderator.put(url, ARTICLE_PAYLOAD, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.titre, "titre corrigé")
+        self.assertEqual(self.pending.auteurs.get().nom, "Yessed")
+
+    def test_put_invalid_data(self):
+        url = reverse("article-detail", args=[self.pending.id])
+        self.assertEqual(self.moderator.put(url, {}, format="json").status_code, status.HTTP_400_BAD_REQUEST)
+        invalid = {**ARTICLE_PAYLOAD, "date_de_publication": "not a date"}
+        self.assertEqual(self.moderator.put(url, invalid, format="json").status_code, status.HTTP_400_BAD_REQUEST)
+        self.pending.refresh_from_db()
+        self.assertEqual(self.pending.titre, "pending")
+
+    def test_only_moderators_can_modify(self):
+        url = reverse("article-detail", args=[self.pending.id])
+        self.assertEqual(self.anonymous.put(url, ARTICLE_PAYLOAD, format="json").status_code, 401)
+        self.assertEqual(self.user.put(url, ARTICLE_PAYLOAD, format="json").status_code, 403)
+        self.assertEqual(self.user.delete(url).status_code, 403)
         self.assertEqual(Article.objects.count(), 2)
-        self.assertEqual(Article.objects.last().titre, 'titre')
-        self.assertEqual(Article.objects.last().resume, 'resume')
-        self.assertEqual(Article.objects.last().text_integral, 'text_integral')
-        self.assertEqual(Article.objects.last().url, 'url')
-        self.assertEqual(Article.objects.last().date_de_publication.__str__(), '2021-01-01')
-        self.assertEqual(Article.objects.last().mot_cles.first().text, 'text')
-        self.assertEqual(Article.objects.last().auteurs.first().nom, 'nom')
-        self.assertEqual(Article.objects.last().auteurs.first().institutions.first().nom, 'nom')
-        self.assertEqual(Article.objects.last().references_bibliographique.first().nom, 'nom')
-    
-    def test_post_article_with_empty_data(self):
-        url = reverse('article-list')
-        data = {}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    def test_post_article_with_invalid_data(self):
-        url = reverse('article-list')
-        data = {
-            "title": "titre", # valid field is titre not title
-            "resume": "resume",
-            "text_integral": "text_integral",
-            "url": "url",
-            "date_de_publication": "2021-01-01",
-            "mot_cles": [
-                {
-                    "text": "text"
-                }
-            ],
-            "auteurs": [
-                {
-                    "nom": "nom",
-                    "institutions": [
-                        {
-                            "nom": "nom",
-                        }
-                    ]
-                }
-            ],
-            "references_bibliographique": [
-                {
-                    "nom": "nom"
-                }
-            ]
-        }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(Article.objects.count(), 1)
-        self.assertEqual(MotCle.objects.count(), 1)
-        self.assertEqual(Auteur.objects.count(), 1)
-        self.assertEqual(Institution.objects.count(), 1)
-        self.assertEqual(ReferenceBibliographique.objects.count(), 1)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
-    def test_get_article(self):
-        url = reverse('article-detail', args=[self.article.id])
-        response = self.client.get(url)
-        serializer = ArticleSerializer(self.article)
-        self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-    def test_get_article_not_found(self):
-        url = reverse('article-detail', args=[100])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        
-    def test_put_article(self):
-        url = reverse('article-detail', args=[self.article.id])
-        data = {
-            "titre": "titre",
-            "resume": "resume",
-            "text_integral": "text_integral",
-            "url": "url",
-            "date_de_publication": "2021-01-01",
-            "mot_cles": [
-                {
-                    "text": "text"
-                }
-            ],
-            "auteurs": [
-                {
-                    "nom": "nom",
-                    "institutions": [
-                        {
-                            "nom": "nom",
-                        }
-                    ]
-                }
-            ],
-            "references_bibliographique": [
-                {
-                    "nom": "nom"
-                }
-            ]
-        }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(Article.objects.count(), 1)
-        self.assertEqual(Article.objects.last().titre, 'titre')
-        self.assertEqual(Article.objects.last().resume, 'resume')
-        self.assertEqual(Article.objects.last().text_integral, 'text_integral')
-        self.assertEqual(Article.objects.last().url, 'url')
-        self.assertEqual(Article.objects.last().date_de_publication.__str__(), '2021-01-01')
-        self.assertEqual(Article.objects.last().mot_cles.first().text, 'text')
-        self.assertEqual(Article.objects.last().auteurs.first().nom, 'nom')
-        self.assertEqual(Article.objects.last().auteurs.first().institutions.first().nom, 'nom')
-        self.assertEqual(Article.objects.last().references_bibliographique.first().nom, 'nom')
-        
-        
-    def test_put_article_not_found(self):
-        url = reverse('article-detail', args=[100])
-        data = {
-            "titre": "titre",
-            "resume": "resume",
-            "text_integral": "text_integral",
-            "url": "url",
-            "date_de_publication": "2021-01-01",
-            "mot_cles": [
-                {
-                    "text": "text"
-                }
-            ],
-            "auteurs": [
-                {
-                    "nom": "nom",
-                    "institutions": [
-                        {
-                            "nom": "nom",
-                        }
-                    ]
-                }
-            ],
-            "references_bibliographique": [
-                {
-                    "nom": "nom"
-                }
-            ]
-        }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        
-    def test_put_article_with_empty_data(self):
-        url = reverse('article-detail', args=[self.article.id])
-        data = {}
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
-    def test_put_article_with_invalid_data(self):
-        url = reverse('article-detail', args=[self.article.id])
-        data = {
-            "title": "titre", # valid field is titre not title
-            "resume": "resume",
-            "text_integral": "text_integral",
-            "url": "url",
-            "date_de_publication": "2021-01-01",
-            "mot_cles": [
-                {
-                    "text": "text"
-                }
-            ],
-            "auteurs": [
-                {
-                    "nom": "nom",
-                    "institutions": [
-                        {
-                            "nom": "nom",
-                        }
-                    ]
-                }
-            ],
-            "references_bibliographique": [
-                {
-                    "nom": "nom"
-                }
-            ]
-        }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(Article.objects.count(), 1)
-        self.assertEqual(MotCle.objects.count(), 1)
-        self.assertEqual(Auteur.objects.count(), 1)
-        self.assertEqual(Institution.objects.count(), 1)
-        self.assertEqual(ReferenceBibliographique.objects.count(), 1)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        
-    def test_delete_article(self):
-        url = reverse('article-detail', args=[self.article.id])
-        response = self.client.delete(url)
+
+    def test_delete(self):
+        response = self.moderator.delete(reverse("article-detail", args=[self.pending.id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Article.objects.count(), 0)
-        self.assertEqual(MotCle.objects.count(), 1)
-        self.assertEqual(Auteur.objects.count(), 1)
-        self.assertEqual(Institution.objects.count(), 1)
-        self.assertEqual(ReferenceBibliographique.objects.count(), 1)
-    
-    def test_delete_article_not_found(self):
-        url = reverse('article-detail', args=[100])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(Article.objects.count(), 1)
-        self.assertEqual(MotCle.objects.count(), 1)
-        self.assertEqual(Auteur.objects.count(), 1)
-        self.assertEqual(Institution.objects.count(), 1)
-        self.assertEqual(ReferenceBibliographique.objects.count(), 1)
-    
-    def test_get_validated_articles(self):
-        url = reverse('article-list')
-        response = self.client.get(f"{url}validated", follow=True)
-        articles = Article.objects.filter(is_validated=True)
-        serializer = ArticleSerializer(articles, many=True)
-        
-        self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Article.objects.filter(id=self.pending.id).exists())
+        self.assertEqual(self.moderator.delete(reverse("article-detail", args=[999])).status_code, 404)
 
-    def test_get_not_validated_articles(self):
-        url = reverse('article-list')
-        response = self.client.get(f"{url}not_validated", follow=True)
-        articles = Article.objects.filter(is_validated=False)
-        serializer = ArticleSerializer(articles, many=True)
+    def test_validation_workflow(self):
+        pending_url = reverse("article-get-not-validated-articles")
+        self.assertEqual(self.user.get(pending_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual([a["titre"] for a in self.moderator.get(pending_url).data], ["pending"])
 
-        self.assertEqual(response.data, serializer.data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        validate_url = reverse("article-validate-article", args=[self.pending.id])
+        self.assertEqual(self.moderator.put(validate_url).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.moderator.put(validate_url).status_code, status.HTTP_400_BAD_REQUEST)
+
+        validated = self.user.get(reverse("article-get-validated-articles")).data
+        self.assertEqual({a["titre"] for a in validated}, {"pending", "validated"})
