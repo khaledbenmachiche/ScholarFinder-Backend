@@ -139,3 +139,12 @@ GitHub.sublime-settings
 uploads
 *.pdf
 static
+
+# Credentials and local data
+client_secret*.json
+token*.pickle
+token.json
+*.key
+*.csr
+*.crt
+*.sql
