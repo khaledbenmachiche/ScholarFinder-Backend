@@ -1,22 +1,17 @@
-# Use an official Python runtime as a parent image
-FROM python:3.8   
+FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Set the working directory in the container
+# Build dependencies for mysqlclient
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential default-libmysqlclient-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt /app/
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install mysqlclient
-# Copy the current directory contents into the container at /app
-COPY . /app/
+COPY . .
 
-# Expose the port that Django will run on
 EXPOSE 8000
-
-# Run the specified command within the container
-CMD ["sh", "-c", "python3 manage.py makemigrations --noinput && python3 manage.py migrate --noinput && python3 manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"]

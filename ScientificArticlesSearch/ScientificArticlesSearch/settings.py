@@ -14,6 +14,7 @@ from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 import os
+import sys
 
 
 
@@ -70,8 +71,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1', '0.0.0.0' ]
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -95,7 +95,7 @@ CSRF_COOKIE_SAMESITE = 'None'
 
 ELASTICSEARCH_DSL = {
     "default": {
-        "hosts": os.getenv("ELASTICSEARCH_HOSTS"),
+        "hosts": os.getenv("ELASTICSEARCH_HOSTS", "http://localhost:9200"),
         "http_auth": (os.getenv("ELASTICSEARCH_USERNAME"), os.getenv("ELASTICSEARCH_PASSWORD")),
         'verify_certs': False,
         "ca_certs": os.getenv("ELASTICSEARCH_CA_CERTS"),
@@ -127,22 +127,20 @@ WSGI_APPLICATION = 'ScientificArticlesSearch.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-   'default': {
-     'ENGINE': 'django.db.backends.mysql',
-     'NAME': os.getenv('DB_NAME'),
-     'USER': os.getenv('DB_USER'),
-     'PASSWORD': os.getenv('DB_PASSWORD'),
-     'HOST': os.getenv('DB_HOST'),
-     'PORT': os.getenv('DB_PORT'),
-     'OPTIONS': {
-         'unix_socket': '/var/run/mysqld/mysqld.sock',
-     },
-     'DISABLE_SERVER_SIDE_CURSORS': True,
+if os.getenv("DB_NAME"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "3306"),
+        }
     }
-}
-
-
+else:
+    # Zero-config local development and tests.
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 
 
 # Password validation
@@ -198,13 +196,32 @@ REST_FRAMEWORK = {
 
 MEDIA_URL = '/uploads/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
-CLIENT_SECRET_FILE = 'client_secret_808300273724-h05se6t7qe1ro4opie0sdkdj0bu3m5vd.apps.googleusercontent.com.json'
-API_NAME = 'drive'
-API_VERSION = 'v3'
-SCOPES = ['https://www.googleapis.com/auth/drive']
 
-ARTICLES_FOLDER_ID = "1GaKJSn08mD7tcd3VuR9kGvJXXII6C5iB"
-SCRAPED_FILES_FILES_ID = "1XmbZd44kKHzyWPUR6aoE999inHPp8jdy"
+# PDF extraction (see Articles/grobid/)
+GROBID_URL = os.getenv("GROBID_URL", "http://localhost:8070")
+GROBID_TIMEOUT = int(os.getenv("GROBID_TIMEOUT", "180"))
+GROBID_MAX_WORKERS = int(os.getenv("GROBID_MAX_WORKERS", "4"))
+# Header consolidation queries CrossRef to correct title/authors/DOI; needs internet access.
+GROBID_CONSOLIDATE_HEADER = os.getenv("GROBID_CONSOLIDATE_HEADER", "True") == "True"
+GROBID_CONSOLIDATE_CITATIONS = os.getenv("GROBID_CONSOLIDATE_CITATIONS", "False") == "True"
+GROBID_TEI_DIR = os.path.join(MEDIA_ROOT, "ScrapingResults")
+MAX_PDF_UPLOAD_SIZE = 50 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_PDF_UPLOAD_SIZE
+
+# Optional: host uploaded PDFs on Google Drive instead of MEDIA_ROOT.
+GOOGLE_DRIVE_CLIENT_SECRET_FILE = os.getenv("GOOGLE_DRIVE_CLIENT_SECRET_FILE", "")
+GOOGLE_DRIVE_TOKEN_FILE = os.getenv("GOOGLE_DRIVE_TOKEN_FILE", "token_drive_v3.pickle")
+GOOGLE_DRIVE_UPLOAD_FOLDER_ID = os.getenv("GOOGLE_DRIVE_UPLOAD_FOLDER_ID", "")
+GOOGLE_DRIVE_ENABLED = bool(GOOGLE_DRIVE_UPLOAD_FOLDER_ID) and (
+    os.path.exists(GOOGLE_DRIVE_TOKEN_FILE) or os.path.exists(GOOGLE_DRIVE_CLIENT_SECRET_FILE)
+)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"Articles": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")}},
+}
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -213,3 +230,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
+
+# Keep the Elasticsearch index in sync on save; disable when running without Elasticsearch.
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+ELASTICSEARCH_DSL_AUTOSYNC = os.getenv("ELASTICSEARCH_AUTOSYNC", str(not RUNNING_TESTS)) == "True"
