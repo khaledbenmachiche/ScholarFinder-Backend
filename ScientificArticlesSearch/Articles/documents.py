@@ -42,4 +42,5 @@ class ArticleDocument(Document):
             "resume",
             "text_integral",
             "url",
+            "is_validated",
         ]

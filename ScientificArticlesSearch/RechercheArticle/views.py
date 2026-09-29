@@ -1,16 +1,19 @@
 import abc
+import logging
 
-from django.http import HttpResponse
+from elasticsearch.exceptions import ApiError, TransportError
 from elasticsearch_dsl import Q
+from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.views import APIView
-from rest_framework import permissions
-from .CustomPermissions import IsAuth,IsAdmin,IsModerator
-from rest_framework.permissions import AllowAny , IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from Articles.documents import ArticleDocument
 from .serializers import ArticleSearchResultSerializer
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
+logger = logging.getLogger(__name__)
+ElasticsearchException = (ApiError, TransportError)
 
 class PaginatedElasticSearchAPIView(APIView, LimitOffsetPagination):
     serializer_class = None
@@ -22,20 +25,28 @@ class PaginatedElasticSearchAPIView(APIView, LimitOffsetPagination):
         and return a Q() expression."""
 
     def get(self, request, query):
+        filters = request.GET.dict()
+        q = self.generate_q_expression(query, filters)
+
+        # Paginate inside Elasticsearch: it only returns 10 hits unless asked for a range.
+        self.request = request
+        self.limit = self.get_limit(request) or 10
+        self.offset = self.get_offset(request)
+        search = (
+            self.document_class.search()
+            .query(q)
+            .filter("term", is_validated=True)  # unmoderated articles are never public
+            .extra(track_total_hits=True)[self.offset:self.offset + self.limit]
+        )
         try:
-            filters = request.GET.dict()
-            q = self.generate_q_expression(query, filters)
-
-            search = self.document_class.search().query(q)
             response = search.execute()
+        except ElasticsearchException:
+            logger.exception("Search failed for query %r", query)
+            return Response({"detail": "Search is temporarily unavailable."}, status=503)
 
-            print(f'Found {response.hits.total.value} hit(s) for query: "{query}"')
-
-            results = self.paginate_queryset(response, request, view=self)
-            serializer = self.serializer_class(results, many=True)
-            return self.get_paginated_response(serializer.data)
-        except Exception as e:
-            return HttpResponse(e, status=500)
+        self.count = response.hits.total.value
+        serializer = self.serializer_class(response, many=True)
+        return self.get_paginated_response(serializer.data)
 
 
 class SearchArticles(PaginatedElasticSearchAPIView):
