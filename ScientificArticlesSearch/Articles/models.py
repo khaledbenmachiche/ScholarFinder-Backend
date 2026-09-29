@@ -27,10 +27,10 @@ class Auteur(models.Model):
 
 
 class Article(models.Model):
-    titre = models.CharField(max_length=200)
+    titre = models.CharField(max_length=500)
     resume = models.TextField(blank=True)
     text_integral = models.TextField(blank=True)
-    url = models.CharField(max_length=100)
+    url = models.CharField(max_length=500)
     date_de_publication = models.DateField(null=True)
     mot_cles = models.ManyToManyField(MotCle)
     auteurs = models.ManyToManyField(Auteur)

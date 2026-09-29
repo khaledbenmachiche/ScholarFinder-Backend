@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 from .models import Article, MotCle, Institution, ReferenceBibliographique, Auteur
 
@@ -28,6 +29,9 @@ class AuteurSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+NESTED_FIELDS = ("mot_cles", "auteurs", "references_bibliographique")
+
+
 class ArticleSerializer(serializers.ModelSerializer):
     mot_cles = MotCleSerializer(many=True)
     auteurs = AuteurSerializer(many=True)
@@ -38,59 +42,41 @@ class ArticleSerializer(serializers.ModelSerializer):
         fields = "__all__"
     
     def create(self, validated_data):
-        mot_cles = validated_data.pop('mot_cles',[])
-        auteurs = validated_data.pop('auteurs',[])
-        references_bibliographique = validated_data.pop('references_bibliographique',[])
-        article_instance = None
-        try:
-            article_instance = Article.objects.create(**validated_data)
-        except Exception as e:
-            print(f"error:",e)
+        nested = self._pop_nested(validated_data)
+        with transaction.atomic():
+            article = Article.objects.create(**validated_data)
+            self._set_nested(article, nested)
+        return article
 
-        for mot_cle in mot_cles:
-            mot_cle_instance = MotCle.objects.create(**mot_cle,article=article_instance)
-            article_instance.mot_cles.add(mot_cle_instance)
-            
-        for auteur in auteurs:
-            institutions = auteur.pop('institutions',[])
-            auteur_instance = Auteur.objects.create(**auteur,article=article_instance)
-
-            for institution in institutions:
-                institution_instance = Institution.objects.create(**institution,auteur=auteur_instance)
-                auteur_instance.institutions.add(institution_instance)
-            article_instance.auteurs.add(auteur_instance)
-        
-        for reference_bibliographique in references_bibliographique:
-            reference_bibliographique_instance = ReferenceBibliographique.objects.create(**reference_bibliographique,article=article_instance)
-            article_instance.references_bibliographique.add(reference_bibliographique_instance)
-        article_instance.save()
-        return article_instance
-    
     def update(self, instance, validated_data):
-        mot_cles = validated_data.pop('mot_cles',[])
-        auteurs = validated_data.pop('auteurs',[])
-        references_bibliographique = validated_data.pop('references_bibliographique',[])
-        instance.titre = validated_data.get('titre',instance.titre)
-        instance.resume = validated_data.get('resume',instance.resume)
-        instance.text_integral = validated_data.get('text_integral',instance.text_integral)
-        instance.url = validated_data.get('url',instance.url)
-        instance.date_de_publication = validated_data.get('date_de_publication',instance.date_de_publication)
-        instance.save()
-        
-        for mot_cle in mot_cles:
-            mot_cle_instance = MotCle.objects.create(**mot_cle,article=instance)
-            instance.mot_cles.add(mot_cle_instance)
-            
-        for auteur in auteurs:
-            institutions = auteur.pop('institutions',[])
-            auteur_instance = Auteur.objects.create(**auteur,article=instance)
-            for institution in institutions:
-                institution_instance = Institution.objects.create(**institution,auteur=auteur_instance)
-                auteur_instance.institutions.add(institution_instance)
-            instance.auteurs.add(auteur_instance)
-        
-        for reference_bibliographique in references_bibliographique:
-            reference_bibliographique_instance = ReferenceBibliographique.objects.create(**reference_bibliographique,article=instance)
-            instance.references_bibliographique.add(reference_bibliographique_instance)
-        instance.save()
+        nested = self._pop_nested(validated_data)
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+            # Nested lists are replaced, not appended to, so a moderator's
+            # corrected list of authors/keywords/references is the final one.
+            self._set_nested(instance, nested)
         return instance
+
+    @staticmethod
+    def _pop_nested(validated_data):
+        return {name: validated_data.pop(name) for name in NESTED_FIELDS if name in validated_data}
+
+    @staticmethod
+    def _set_nested(article, nested):
+        if "mot_cles" in nested:
+            article.mot_cles.set([MotCle.objects.create(**data) for data in nested["mot_cles"]])
+        if "references_bibliographique" in nested:
+            article.references_bibliographique.set(
+                [ReferenceBibliographique.objects.create(**data) for data in nested["references_bibliographique"]]
+            )
+        if "auteurs" in nested:
+            auteurs = []
+            for data in nested["auteurs"]:
+                data = dict(data)
+                institutions = data.pop("institutions", [])
+                auteur = Auteur.objects.create(**data)
+                auteur.institutions.set([Institution.objects.create(**inst) for inst in institutions])
+                auteurs.append(auteur)
+            article.auteurs.set(auteurs)
