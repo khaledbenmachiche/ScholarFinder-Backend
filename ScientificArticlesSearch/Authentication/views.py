@@ -63,19 +63,15 @@ class AuthenticationViewSet(ViewSet):
     )
     @action(detail=False, methods=['post'],permission_classes = (AllowAny,))
     def login(self, request):
-
-        print(request.user)       
-
-        username = request.data['username']
-        password = request.data['password']
+        username = request.data.get('username')
+        password = request.data.get('password')
+        if not username or not password:
+            return Response({'detail': 'username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(username=username).first()
-
-        if user is None:
-            raise AuthenticationFailed('User not found!')
-
-        if not user.check_password(password):
-            raise AuthenticationFailed('Incorrect password!')
+        # Same message for both cases so the endpoint does not reveal which usernames exist.
+        if user is None or not user.check_password(password):
+            raise AuthenticationFailed('Invalid username or password')
 
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
